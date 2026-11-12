@@ -4,3 +4,6 @@
 [submodule "amg4psblas"]
 	path = amg4psblas
 	url = git@github.com:sfilippone/amg4psblas.git
+[submodule "dealii"]
+	path = dealii
+	url = git@github.com:psctoolkit/dealii.git

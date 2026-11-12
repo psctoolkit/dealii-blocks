@@ -38,17 +38,11 @@ add_executable(stokes stokes.cc)
 target_compile_features(stokes PRIVATE cxx_std_17)
 deal_ii_setup_target(stokes)
 
-# Complete the static-library dependencies of the pinned deal.II export.
-# The extended AMG C bindings contain both real and complex routines in one
-# object, so a real-valued application also needs their complex dependencies.
+# deal.II exports the AMG4PSBLAS -> PSBLAS dependency and its link ordering.
+# Complete only the optional MUMPS precisions needed by the extended AMG C
+# bindings: one object contains real and complex routines, whereas deal.II's
+# MUMPS interface normally exports only the double-precision solver.
 if(DEAL_II_WITH_PSBLAS AND DEAL_II_WITH_AMG4PSBLAS)
-  if(NOT TARGET dealii::interface_psblas OR
-     NOT TARGET dealii::interface_amg4psblas)
-    message(FATAL_ERROR "The selected deal.II package does not export its PSBLAS/AMG4PSBLAS interface targets.")
-  endif()
-
-  get_target_property(_stokes_psblas_libraries
-    dealii::interface_psblas INTERFACE_LINK_LIBRARIES)
   get_target_property(_stokes_amg_includes
     dealii::interface_amg4psblas INTERFACE_INCLUDE_DIRECTORIES)
   unset(_stokes_amg_config CACHE)
@@ -61,13 +55,13 @@ if(DEAL_II_WITH_PSBLAS AND DEAL_II_WITH_AMG4PSBLAS)
     REGEX "^[ \t]*#[ \t]*define[ \t]+AMG_HAVE_MUMPS([ \t]|$)")
   unset(_stokes_amg_config CACHE)
 
-  set(_stokes_amg_dependencies)
   if(_stokes_amg_mumps)
     if(NOT TARGET dealii::interface_mumps)
       message(FATAL_ERROR "AMG4PSBLAS was built with MUMPS; enable DEAL_II_WITH_MUMPS in deal.II.")
     endif()
     get_target_property(_stokes_mumps_libraries
       dealii::interface_mumps INTERFACE_LINK_LIBRARIES)
+    set(_stokes_amg_dependencies)
     set(_stokes_mumps_library_dirs)
     foreach(_library IN LISTS _stokes_mumps_libraries)
       get_filename_component(_name "${_library}" NAME)
@@ -90,13 +84,9 @@ if(DEAL_II_WITH_PSBLAS AND DEAL_II_WITH_AMG4PSBLAS)
     endforeach()
     unset(_stokes_mumps_precision_library CACHE)
     list(APPEND _stokes_amg_dependencies ${_stokes_mumps_libraries})
-    set_property(TARGET dealii::interface_mumps APPEND
-      PROPERTY INTERFACE_LINK_LIBRARIES "${_stokes_psblas_libraries}")
+    set_property(TARGET dealii::interface_amg4psblas APPEND
+      PROPERTY INTERFACE_LINK_LIBRARIES "${_stokes_amg_dependencies}")
   endif()
-  # Static providers must follow their users on the final executable link line.
-  list(APPEND _stokes_amg_dependencies ${_stokes_psblas_libraries})
-  set_property(TARGET dealii::interface_amg4psblas APPEND
-    PROPERTY INTERFACE_LINK_LIBRARIES "${_stokes_amg_dependencies}")
 endif()
 
 include(CTest)
@@ -108,17 +98,53 @@ if(BUILD_TESTING)
   # Jacobi needs no optional direct solver package. The FGMRES cases exercise
   # nested solves; GMRES/MINRES use fixed native preconditioner applications.
   function(stokes_numerical_test name backend problem degree refinements nu form u_action p_action ranks outer_method)
+    cmake_parse_arguments(PARSE_ARGV 11 case "CHECK_OUTPUT;CHECK_MULTILEVEL"
+      "LID;CYCLES;VELOCITY_PTYPE;VELOCITY_NATIVE;OPTIONS_FILE_CONTENT;LABELS" "")
+    if(NOT DEFINED case_LID)
+      set(case_LID regularized)
+    endif()
+    if(NOT DEFINED case_CYCLES)
+      set(case_CYCLES 1)
+    endif()
+    if(NOT DEFINED case_VELOCITY_PTYPE)
+      set(case_VELOCITY_PTYPE JACOBI)
+    endif()
+    if(case_CHECK_OUTPUT)
+      set(write_output true)
+    else()
+      set(write_output false)
+    endif()
+    if(problem STREQUAL poiseuille OR problem STREQUAL colliding)
+      set(verification
+"  set Maximum velocity L2 error = 1e-6
+  set Maximum pressure L2 error = 1e-6
+  set Maximum divergence L2 norm = 1e-6")
+      set(problem_label exact-solution)
+    else()
+      set(verification "")
+      set(problem_label benchmark)
+    endif()
     set(test_dir "${stokes_test_root}/${name}")
     file(MAKE_DIRECTORY "${test_dir}")
+    set(run_directory "${test_dir}")
+    if(DEFINED case_OPTIONS_FILE_CONTENT)
+      file(MAKE_DIRECTORY "${test_dir}/options")
+      file(WRITE "${test_dir}/options/velocity.options" "${case_OPTIONS_FILE_CONTENT}")
+      # Exercise resolution relative to setup.prm rather than the process cwd.
+      set(run_directory "${test_dir}/working")
+      file(MAKE_DIRECTORY "${run_directory}")
+    endif()
     set(prm "${test_dir}/setup.prm")
     file(WRITE "${prm}"
 "subsection Problem
   set Test case = ${problem}
+  set Cavity lid = ${case_LID}
   set Viscosity = ${nu}
 end
 subsection Discretization
   set Pressure degree = ${degree}
   set Initial global refinements = ${refinements}
+  set Refinement cycles = ${case_CYCLES}
 end
 subsection Linear algebra
   set Backend = ${backend}
@@ -138,10 +164,12 @@ subsection Linear algebra
     end
     subsection Trilinos
       set Preconditioner = Jacobi
+      set smoother_sweeps = 1
     end
     subsection AMG4PSBLAS
-      set ptype = JACOBI
+      set ptype = ${case_VELOCITY_PTYPE}
       set SMOOTHER_SWEEPS = 1
+${case_VELOCITY_NATIVE}
     end
   end
   subsection Pressure block
@@ -152,6 +180,7 @@ subsection Linear algebra
     end
     subsection Trilinos
       set Preconditioner = Jacobi
+      set smoother_sweeps = 1
     end
     subsection AMG4PSBLAS
       set ptype = JACOBI
@@ -161,26 +190,38 @@ subsection Linear algebra
 end
 subsection Output
   set Directory = output
-  set Write visualization = false
-  set Write residual history = false
+  set Write visualization = ${write_output}
+  set Write residual history = ${write_output}
 end
 subsection Verification
-  set Maximum velocity L2 error = 1e-6
-  set Maximum pressure L2 error = 1e-6
-  set Maximum divergence L2 norm = 1e-6
+${verification}
 end
 ")
     if(ranks GREATER 1)
-      add_test(NAME ${name}
-        COMMAND ${DEAL_II_MPIEXEC} ${DEAL_II_MPIEXEC_NUMPROC_FLAG} ${ranks}
+      set(run_command ${DEAL_II_MPIEXEC} ${DEAL_II_MPIEXEC_NUMPROC_FLAG} ${ranks}
           ${DEAL_II_MPIEXEC_PREFLAGS} $<TARGET_FILE:stokes>
           ${DEAL_II_MPIEXEC_POSTFLAGS} "${prm}")
     else()
-      add_test(NAME ${name} COMMAND stokes "${prm}")
+      set(run_command $<TARGET_FILE:stokes> "${prm}")
     endif()
+
+    # The test runner uses only CMake. Besides solver verification, it checks
+    # the pressure gauge, refinement-cycle records, and requested output files.
+    set(run_configuration "set(STOKES_RUN_COMMAND)\n")
+    foreach(argument IN LISTS run_command)
+      string(APPEND run_configuration
+        "list(APPEND STOKES_RUN_COMMAND [==[${argument}]==])\n")
+    endforeach()
+    foreach(variable test_dir run_directory backend problem ranks case_CYCLES case_CHECK_OUTPUT case_CHECK_MULTILEVEL)
+      string(APPEND run_configuration "set(${variable} [==[${${variable}}]==])\n")
+    endforeach()
+    string(APPEND run_configuration
+      "include([==[${CMAKE_CURRENT_SOURCE_DIR}/tests/check_run.cmake]==])\n")
+    file(GENERATE OUTPUT "${test_dir}/run.cmake" CONTENT "${run_configuration}")
+    add_test(NAME ${name} COMMAND ${CMAKE_COMMAND} -P "${test_dir}/run.cmake")
     set_tests_properties(${name} PROPERTIES
       WORKING_DIRECTORY "${test_dir}" TIMEOUT 180 PROCESSORS ${ranks}
-      LABELS "stokes;${backend};${outer_method};exact-solution")
+      LABELS "stokes;${backend};${outer_method};${problem_label};${case_LABELS}")
   endfunction()
 
   foreach(backend IN LISTS stokes_backends)
@@ -201,6 +242,16 @@ end
     # Positive diagonal Jacobi application gives MINRES an SPD preconditioner.
     stokes_numerical_test(${key}_poiseuille_minres ${backend} poiseuille 1 1 1
       diagonal apply apply 1 MINRES)
+
+    stokes_numerical_test(${key}_backward_step ${backend} backward_step 1 0 1
+      "lower triangular" solve solve 1 FGMRES)
+    foreach(lid leaky watertight regularized)
+      stokes_numerical_test(${key}_cavity_${lid} ${backend} cavity 1 1 1
+        "upper triangular" solve solve 1 FGMRES LID ${lid})
+    endforeach()
+    stokes_numerical_test(${key}_refinement_cycles ${backend} poiseuille 1 0 0.7
+      "upper triangular" solve solve 1 FGMRES CYCLES 2 CHECK_OUTPUT
+      LABELS "refinement;output")
     if(DEAL_II_MPIEXEC)
       stokes_numerical_test(${key}_poiseuille_mpi2 ${backend} poiseuille 1 1 1
         "upper triangular" solve solve 2 FGMRES)
@@ -208,8 +259,58 @@ end
         "upper triangular" apply apply 2 GMRES)
       stokes_numerical_test(${key}_poiseuille_minres_mpi2 ${backend} poiseuille 1 1 1
         diagonal apply apply 2 MINRES)
+      stokes_numerical_test(${key}_colliding_mpi2_output ${backend} colliding 3 0 0.3
+        "upper triangular" solve apply 2 FGMRES CHECK_OUTPUT
+        LABELS "mpi;pressure-gauge;output")
     endif()
   endforeach()
+
+  if(DEAL_II_WITH_PSBLAS AND DEAL_II_WITH_AMG4PSBLAS)
+    set(ml_options
+"      set MIN_COARSE_SIZE = 4
+      set SMOOTHER_TYPE = FBGS
+      set COARSE_SOLVE = BJAC
+      set COARSE_SUBSOLVE = ILU
+      set Additional options = hierarchy integer MAX_LEVS 6
+      set Options file = options/velocity.options
+      set Verbosity = true
+      subsection PRE
+        set SMOOTHER_SWEEPS = 1
+      end
+      subsection POST
+        set SMOOTHER_SWEEPS = 1
+      end")
+    # The relative options-file path is resolved beside setup.prm. Its PRE
+    # setting overrides the named entry after hierarchy construction.
+    set(ml_file_options
+"# Native smoother-phase settings, applied after the named and inline entries.
+smoother integer SMOOTHER_SWEEPS 2 position=PRE
+smoother integer SMOOTHER_SWEEPS 1 position=POST
+")
+    if(DEAL_II_MPIEXEC)
+      set(ml_ranks 2)
+    else()
+      set(ml_ranks 1)
+    endif()
+    stokes_numerical_test(psblas_ml_native_options PSBLAS poiseuille 1 1 1
+      "upper triangular" solve solve ${ml_ranks} FGMRES
+      VELOCITY_PTYPE ML VELOCITY_NATIVE "${ml_options}"
+      OPTIONS_FILE_CONTENT "${ml_file_options}" CHECK_MULTILEVEL
+      LABELS "native-options;multilevel")
+    if(DEAL_II_MPIEXEC)
+      # Four coarse cells on five ranks force at least one empty cell owner.
+      stokes_numerical_test(psblas_empty_rank PSBLAS poiseuille 1 0 1
+        "upper triangular" solve solve 5 FGMRES
+        LABELS "mpi;empty-ownership")
+      # The old adapter rebuilt AMG on a reduced communicator. Exercise the
+      # native multilevel hierarchy on the full communicator with an empty rank.
+      stokes_numerical_test(psblas_empty_rank_ml PSBLAS poiseuille 1 0 1
+        "upper triangular" solve solve 5 FGMRES
+        VELOCITY_PTYPE ML VELOCITY_NATIVE "${ml_options}"
+        OPTIONS_FILE_CONTENT "${ml_file_options}" CHECK_MULTILEVEL
+        LABELS "mpi;empty-ownership;multilevel")
+    endif()
+  endif()
 
   # Check both default generation and preservation of a user's existing file.
   file(MAKE_DIRECTORY "${stokes_test_root}/defaults")

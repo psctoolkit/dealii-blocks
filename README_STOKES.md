@@ -7,14 +7,21 @@ Silvester, and Andrew J. Wathen. Finite elements and fast iterative solvers:
 with applications in incompressible fluid dynamics. Oxford university press, 2005.", 
 including all three driven-cavity boundary conventions. The implementation consists of
 [stokes.cc](stokes.cc), which contains the discretization and block solvers,
-and [stokes_backends.h](stokes_backends.h), which contains the backend adapters.
+and [stokes_backends.h](stokes_backends.h), which selects the native backend
+types and configures their preconditioners.
+
+This revision uses the new deal.II `PSCToolkitWrappers::BlockSparseMatrix` and
+`PSCToolkitWrappers::BlockVector` interfaces. All six benchmark parameter files,
+solver choices, and native preconditioner option names remain compatible with
+the previous application.
 
 ## Build and run
 
 Use a deal.II installation with MPI, p4est, and at least one supported algebra
-backend. The PSCToolkit backend requires a compatible deal.II build with
-`DEAL_II_WITH_PSBLAS` and `DEAL_II_WITH_AMG4PSBLAS`. The repository's dependency
-submodules and existing configuration scripts identify the intended versions.
+backend. The PSCToolkit backend requires the modified deal.II build containing
+the native PSCToolkit block matrix/vector patch, with `DEAL_II_WITH_PSBLAS` and
+`DEAL_II_WITH_AMG4PSBLAS`. Its PSBLAS and AMG4PSBLAS installations must contain
+the corresponding native rectangular matrix and AMG option extensions.
 PETSc must use real scalars. Trilinos uses its Epetra interfaces; the `AMG`
 preconditioner additionally needs ML.
 
@@ -27,8 +34,9 @@ The native dependency configuration names are unchanged:
 
 These switches configure deal.II. The example inherits those dependencies
 through `deal_ii_setup_target`; it introduces no replacement directory or
-feature switches. The rectangular PSBLAS C interface must match the versions
-pinned by this repository's submodules.
+feature switches or a separate block-capability check. Point `DEAL_II_DIR` to
+the modified deal.II build or installation; the older deal.II submodule pin
+in the original prototype is not a replacement for that patched library.
 
 ```sh
 cmake -S . -B build-stokes \
@@ -36,6 +44,60 @@ cmake -S . -B build-stokes \
   -DCMAKE_BUILD_TYPE=Release
 cmake --build build-stokes --target stokes -j
 ```
+
+Choose `Debug` when that is the only configuration available in the selected
+deal.II build. The validation bundled with this application uses Debug with
+assertions enabled.
+
+The helper script accepts the same dependency location and resolves its own
+source directory independently of the directory from which it is launched:
+
+```sh
+DEAL_II_DIR=/path/to/modified/dealii-build \
+  sh configure-laptop/build-stokes.sh
+```
+
+`CMAKE_BUILD_TYPE`, `CMAKE_BUILD_PARALLEL_LEVEL`, and `STOKES_BUILD_DIR` can
+override the helper's defaults of `Release`, eight build jobs, and
+`build-stokes` inside the application source directory.
+
+If AMG4PSBLAS was built with MUMPS, the existing static-link completion for
+the additional MUMPS scalar libraries is retained. It uses the same MUMPS
+installation selected by deal.II; the extended AMG bindings contain multiple
+scalar types even when the Stokes solution is real-valued.
+
+### Native algebra
+
+The program selects a backend once, then instantiates the same finite element
+and block-solver code with that backend's own matrices and vectors:
+
+| Backend | Matrix and vector types |
+| --- | --- |
+| PSBLAS | `PSCToolkitWrappers::BlockSparseMatrix`, `SparseMatrix`, `BlockVector`, `Vector` |
+| PETSc | `PETScWrappers::MPI::BlockSparseMatrix`, `SparseMatrix`, `BlockVector`, `Vector` |
+| Trilinos | `TrilinosWrappers::BlockSparseMatrix`, `SparseMatrix`, and `TrilinosWrappers::MPI::BlockVector`, `Vector` |
+
+For PSBLAS, finite element assembly writes into the native matrix and an
+owned native right-hand side. `compress(add)` completes nonlocal additions.
+The outer and auxiliary Krylov vectors stay in native PSBLAS storage, and
+matrix products pass those vector handles directly to the library. There is
+no conversion to `LinearAlgebra::distributed::Vector`, separate raw PSBLAS
+matrix storage, or reduced-communicator reconstruction for empty partitions.
+
+The application retains a small AMG setup class to expose the full existing
+native option catalogue, including arbitrary `ptype` values and separate
+hierarchy/smoother phases. Those options extend beyond the standard
+`PreconditionAMG::AdditionalData` fields. It owns only the native AMG
+preconditioner and applies it directly to the deal.II matrix descriptor and
+the caller's native vectors. deal.II manages the matrix, vector, descriptor,
+and PSBLAS context lifetimes.
+
+Native ghosted vectors are used when constraints, finite element diagnostics,
+and visualization need remote values. These exchanges occur outside the
+matrix/preconditioner application path. Closed-domain pressure normalization
+uses the native vector's constant-add operation before refreshing ghosts.
+The application includes deal.II's public DataOut template definitions to
+instantiate visualization support for the new native block vector type.
 
 The executable selects a compiled backend at run time. Changing a parameter
 cannot enable a library that was absent when deal.II was built. `--help`
@@ -70,6 +132,9 @@ Small examples are provided in [parameters](parameters):
 | [cavity_leaky.prm](parameters/cavity_leaky.prm) | Unit lid velocity including the top corners |
 | [cavity_watertight.prm](parameters/cavity_watertight.prm) | Unit lid velocity with zero top-corner values |
 | [colliding.prm](parameters/colliding.prm) | Polynomial analytic solution |
+| [poiseuille_minres.prm](parameters/poiseuille_minres.prm) | MINRES with fixed positive block diagonal Jacobi |
+| [poiseuille_gmres.prm](parameters/poiseuille_gmres.prm) | Right-preconditioned GMRES with fixed upper triangular Jacobi |
+| [poiseuille_amg_options.prm](parameters/poiseuille_amg_options.prm) | Native multilevel AMG with named, typed, and file-based options |
 
 For example:
 
@@ -382,10 +447,10 @@ actions are auxiliary FGMRES solves. The generated parameter file is the
 authoritative inventory of defaults for the executable being used.
 
 For one-level PSCToolkit experiments select a native type such as `AS`,
-`BJAC`, or `JACOBI`. The pinned multilevel builder's `ML` with `MAX_LEVS=1`
-is rejected explicitly. The adapter also rejects known misrouted
-level-specific string setters in that pinned version instead of silently
-changing the requested algorithm.
+`BJAC`, or `JACOBI`. The validated native `ML` builder uses at least two
+levels even when `MAX_LEVS=1`; the application forwards that setting to the
+library. Known misrouted level-specific string setters in the current native
+implementation retain their existing explicit error messages.
 
 ## Output and checks
 

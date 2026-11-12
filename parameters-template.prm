@@ -1,0 +1,2168 @@
+# Listing of Parameters
+# ---------------------
+subsection Discretization
+  # Uniform refinements of a 2x2 square, or an eleven-cell backward-step mesh.
+  set Initial global refinements = 2
+
+  # Only continuous Taylor-Hood [Q_(k+1)]^2/Q_k, k>=1. Velocity degree is
+  # derived.
+  set Pressure degree            = 1
+
+  # Solve on successively uniformly refined meshes; each cycle starts from
+  # zero.
+  set Refinement cycles          = 1
+end
+
+
+subsection Linear algebra
+  # Runtime backend. The chosen backend must be enabled in the linked deal.II
+  # build.
+  set Backend              = PSBLAS
+
+  # diagonal uses diag(A,Q); triangular forms use -Q with Q=M_p/nu.
+  set Block preconditioner = upper triangular
+
+
+  subsection LinearSolver
+    # Outer absolute residual tolerance. MINRES uses sqrt(r^T P^{-1} r); GMRES
+    # and FGMRES use the unpreconditioned residual norm.
+    set Absolute tolerance = 1e-12
+
+    # Outer solver iteration limit.
+    set Maximum iterations = 500
+
+    # Outer method: MINRES, GMRES, or FGMRES. MINRES and GMRES require a fixed
+    # linear preconditioner; MINRES additionally requires a symmetric operator
+    # and a symmetric positive-definite preconditioner. FGMRES accommodates
+    # variable preconditioning. These compatibility requirements are
+    # documented, not checked.
+    set Method             = FGMRES
+
+    # Outer relative residual tolerance, measured against the initial residual
+    # in the solver's norm.
+    set Relative tolerance = 1e-09
+
+    # Outer GMRES/FGMRES basis length; ignored by MINRES.
+    set Restart length     = 50
+  end
+
+  subsection Pressure block
+    # Auxiliary absolute residual tolerance.
+    set Absolute tolerance = 1e-14
+
+    # apply: one native preconditioner application; solve: an auxiliary Krylov
+    # solve.
+    set Action             = solve
+
+    # Auxiliary iteration limit.
+    set Maximum iterations = 200
+
+    # Auxiliary target is max(absolute tolerance, relative tolerance *
+    # norm(rhs)).
+    set Relative tolerance = 0.01
+
+    # Auxiliary GMRES/FGMRES basis length.
+    set Restart length     = 30
+
+    # Auxiliary solver, used only by Action=solve. CG requires an SPD
+    # preconditioner.
+    set Solver             = fgmres
+
+
+    subsection AMG4PSBLAS
+      # Native spectral estimate for prolongator damping. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_EIG                     =
+
+      # FILTER or NOFILTER for prolongator construction. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_FILTER                  =
+
+      # Native algorithm for prolongator damping. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_OMEGA_ALG               =
+
+      # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_OMEGA_VAL               =
+
+      # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_ORD                     =
+
+      # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_PROL                    =
+
+      # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+      set AGGR_SIZE                    =
+
+      # Strength-of-connection threshold. At the top level a list separated by
+      # commas, semicolons or spaces assigns levels 2,3,... as in the upstream
+      # example. Empty retains the AMG4PSBLAS default.
+      set AGGR_THRESH                  =
+
+      # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+      # retains the AMG4PSBLAS default.
+      set AGGR_TYPE                    =
+
+      # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+      set AINV_ALG                     =
+
+      # Native typed entries separated by semicolons: hierarchy|smoother
+      # integer|real|string NAME VALUE [level=N|N:M|coarse]
+      # [position=PRE|POST] [index=N]. Values containing spaces must be
+      # quoted. These entries follow the named entries.
+      set Additional options           =
+
+      # Native coarse block-Jacobi trace frequency. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_ITRACE                  =
+
+      # Native coarse block-Jacobi residual check interval. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_RESCHECK                =
+
+      # Native coarse block-Jacobi residual stopping selection. Empty retains
+      # the AMG4PSBLAS default.
+      set BJAC_STOP                    =
+
+      # Native coarse block-Jacobi stopping tolerance. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_STOPTOL                 =
+
+      # Native coarse block-Jacobi trace selection. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_TRACE                   =
+
+      # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+      # default.
+      set COARSE_FILLIN                =
+
+      # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+      set COARSE_ILUTHRS               =
+
+      # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+      set COARSE_INVFILL               =
+
+      # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+      # default.
+      set COARSE_MAT                   =
+
+      # Native coarse solver. Empty retains the AMG4PSBLAS default.
+      set COARSE_SOLVE                 =
+
+      # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+      set COARSE_SUBSOLVE              =
+
+      # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+      set COARSE_SWEEPS                =
+
+      # Native number of cycle sweeps at a level. Empty retains the AMG4PSBLAS
+      # default.
+      set CYCLE_SWEEPS                 =
+
+      # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+      set INV_FILLIN                   =
+
+      # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+      # default.
+      set INV_THRESH                   =
+
+      # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_EPS                      =
+
+      # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+      set KRM_FILLIN                   =
+
+      # TRUE selects a global coarse Krylov solve. Empty retains the
+      # AMG4PSBLAS default.
+      set KRM_GLOBAL                   =
+
+      # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS default.
+      set KRM_IRST                     =
+
+      # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_ISTOPC                   =
+
+      # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+      set KRM_ITMAX                    =
+
+      # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+      set KRM_ITRACE                   =
+
+      # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_KPREC                    =
+
+      # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+      set KRM_METHOD                   =
+
+      # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_SUB_SOLVE                =
+
+      # Maximum hierarchy levels. Native ML uses at least two even when this
+      # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+      # AMG4PSBLAS default.
+      set MAX_LEVS                     =
+
+      # Global target coarse size. Empty retains the AMG4PSBLAS default.
+      set MIN_COARSE_SIZE              =
+
+      # Target coarse size per process. Empty retains the AMG4PSBLAS default.
+      set MIN_COARSE_SIZE_PER_PROCESS  =
+
+      # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+      set MIN_CR_RATIO                 =
+
+      # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+      # retains the AMG4PSBLAS default.
+      set ML_CYCLE                     =
+
+      # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+      # Additional options. Empty retains the AMG4PSBLAS default.
+      set MUMPS_LOC_GLOB               =
+
+      # Multilevel cycles per application; native one-level actions use
+      # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+      set OUTER_SWEEPS                 =
+
+      # Optional native typed entries, one per line; applied after Additional
+      # options. Relative paths are resolved against the main parameter file.
+      set Options file                 =
+
+      # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+      # retains the AMG4PSBLAS default.
+      set PAR_AGGR_ALG                 =
+
+      # Polynomial degree. Empty retains the AMG4PSBLAS default.
+      set POLY_DEGREE                  =
+
+      # Prescribed polynomial spectral radius; native admissible interval is
+      # (0,1]. Empty retains the AMG4PSBLAS default.
+      set POLY_RHO_BA                  =
+
+      # Native spectral radius estimation method. Empty retains the AMG4PSBLAS
+      # default.
+      set POLY_RHO_ESTIMATE            =
+
+      # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+      # default.
+      set POLY_RHO_ESTIMATE_ITERATIONS =
+
+      # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty retains
+      # the AMG4PSBLAS default.
+      set POLY_VARIANT                 =
+
+      # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_ITRACE              =
+
+      # Smoother residual check interval. Empty retains the AMG4PSBLAS
+      # default.
+      set SMOOTHER_RESIDUAL            =
+
+      # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+      # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_STOP                =
+
+      # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+      # default.
+      set SMOOTHER_STOPTOL             =
+
+      # Smoother sweeps, including residual-correction sweeps for one-level
+      # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_SWEEPS              =
+
+      # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_TRACE               =
+
+      # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_TYPE                =
+
+      # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+      set SOLVER_SWEEPS                =
+
+      # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+      # default.
+      set SUB_FILLIN                   =
+
+      # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+      set SUB_ILUTHRS                  =
+
+      # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS default.
+      set SUB_OVR                      =
+
+      # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+      # AMG4PSBLAS default.
+      set SUB_PROL                     =
+
+      # Native Schwarz restriction: NONE or HALO. Empty retains the AMG4PSBLAS
+      # default.
+      set SUB_RESTR                    =
+
+      # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+      # AINV. Empty retains the AMG4PSBLAS default.
+      set SUB_SOLVE                    =
+
+      # Print amg_c_ddescr after setup.
+      set Verbosity                    = false
+
+      # Native matrix format argument; empty preserves the native default.
+      set afmt                         =
+
+      # Native vector format argument; empty preserves the native default.
+      set chfmt                        =
+
+      # Original amg_c_dprecinit ptype: ML, AS, BJAC, JACOBI, L1-JACOBI, POLY,
+      # NONE, etc. No presets or aliases are substituted.
+      set ptype                        = JACOBI
+
+
+      subsection COARSE
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+      subsection POST
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+      subsection PRE
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+    end
+
+    subsection PETSc
+      # Native PETSc options, e.g. -pc_asm_overlap 1 -sub_pc_type ilu. This
+      # private PC options database does not modify other blocks.
+      set Options =
+
+      # Native PETSc PC type, for example gamg, hypre, asm, bjacobi, jacobi,
+      # ilu, lu or none. Availability follows the PETSc build.
+      set pc_type = jacobi
+    end
+
+    subsection Trilinos
+      # deal.II Trilinos preconditioner: AMG, Jacobi, SSOR, ILU, ILUT, IC or
+      # Identity.
+      set Preconditioner        = Jacobi
+
+      # ML aggregation threshold.
+      set aggregation_threshold = 0.0001
+
+      # ML coarse solver selection.
+      set coarse_type           = Amesos-KLU
+
+      # ML higher order finite-element flag.
+      set higher_order_elements = true
+
+      # Incomplete factorization diagonal absolute perturbation.
+      set ilu_atol              = 0
+
+      # ILU, ILUT or IC fill level.
+      set ilu_fill              = 0
+
+      # Incomplete factorization diagonal relative perturbation.
+      set ilu_rtol              = 1
+
+      # ILUT dropping threshold.
+      set ilut_drop             = 0.001
+
+      # ML cycles per application.
+      set n_cycles              = 1
+
+      # Print ML hierarchy details.
+      set output_details        = false
+
+      # Jacobi or SSOR damping.
+      set relaxation            = 1
+
+      # Ifpack or AMG overlap.
+      set smoother_overlap      = 0
+
+      # AMG or relaxation sweeps.
+      set smoother_sweeps       = 1
+
+      # ML smoother selection.
+      set smoother_type         = symmetric Gauss-Seidel
+
+      # Use ML W cycles.
+      set w_cycle               = false
+    end
+
+  end
+
+  subsection Velocity block
+    # Auxiliary absolute residual tolerance.
+    set Absolute tolerance = 1e-14
+
+    # apply: one native preconditioner application; solve: an auxiliary Krylov
+    # solve.
+    set Action             = solve
+
+    # Auxiliary iteration limit.
+    set Maximum iterations = 200
+
+    # Auxiliary target is max(absolute tolerance, relative tolerance *
+    # norm(rhs)).
+    set Relative tolerance = 0.01
+
+    # Auxiliary GMRES/FGMRES basis length.
+    set Restart length     = 30
+
+    # Auxiliary solver, used only by Action=solve. CG requires an SPD
+    # preconditioner.
+    set Solver             = fgmres
+
+
+    subsection AMG4PSBLAS
+      # Native spectral estimate for prolongator damping. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_EIG                     =
+
+      # FILTER or NOFILTER for prolongator construction. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_FILTER                  =
+
+      # Native algorithm for prolongator damping. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_OMEGA_ALG               =
+
+      # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_OMEGA_VAL               =
+
+      # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+      # AMG4PSBLAS default.
+      set AGGR_ORD                     =
+
+      # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+      # default.
+      set AGGR_PROL                    =
+
+      # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+      set AGGR_SIZE                    =
+
+      # Strength-of-connection threshold. At the top level a list separated by
+      # commas, semicolons or spaces assigns levels 2,3,... as in the upstream
+      # example. Empty retains the AMG4PSBLAS default.
+      set AGGR_THRESH                  =
+
+      # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+      # retains the AMG4PSBLAS default.
+      set AGGR_TYPE                    =
+
+      # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+      set AINV_ALG                     =
+
+      # Native typed entries separated by semicolons: hierarchy|smoother
+      # integer|real|string NAME VALUE [level=N|N:M|coarse]
+      # [position=PRE|POST] [index=N]. Values containing spaces must be
+      # quoted. These entries follow the named entries.
+      set Additional options           =
+
+      # Native coarse block-Jacobi trace frequency. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_ITRACE                  =
+
+      # Native coarse block-Jacobi residual check interval. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_RESCHECK                =
+
+      # Native coarse block-Jacobi residual stopping selection. Empty retains
+      # the AMG4PSBLAS default.
+      set BJAC_STOP                    =
+
+      # Native coarse block-Jacobi stopping tolerance. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_STOPTOL                 =
+
+      # Native coarse block-Jacobi trace selection. Empty retains the
+      # AMG4PSBLAS default.
+      set BJAC_TRACE                   =
+
+      # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+      # default.
+      set COARSE_FILLIN                =
+
+      # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+      set COARSE_ILUTHRS               =
+
+      # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+      set COARSE_INVFILL               =
+
+      # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+      # default.
+      set COARSE_MAT                   =
+
+      # Native coarse solver. Empty retains the AMG4PSBLAS default.
+      set COARSE_SOLVE                 =
+
+      # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+      set COARSE_SUBSOLVE              =
+
+      # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+      set COARSE_SWEEPS                =
+
+      # Native number of cycle sweeps at a level. Empty retains the AMG4PSBLAS
+      # default.
+      set CYCLE_SWEEPS                 =
+
+      # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+      set INV_FILLIN                   =
+
+      # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+      # default.
+      set INV_THRESH                   =
+
+      # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_EPS                      =
+
+      # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+      set KRM_FILLIN                   =
+
+      # TRUE selects a global coarse Krylov solve. Empty retains the
+      # AMG4PSBLAS default.
+      set KRM_GLOBAL                   =
+
+      # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS default.
+      set KRM_IRST                     =
+
+      # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_ISTOPC                   =
+
+      # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+      set KRM_ITMAX                    =
+
+      # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+      set KRM_ITRACE                   =
+
+      # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_KPREC                    =
+
+      # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+      set KRM_METHOD                   =
+
+      # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+      # default.
+      set KRM_SUB_SOLVE                =
+
+      # Maximum hierarchy levels. Native ML uses at least two even when this
+      # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+      # AMG4PSBLAS default.
+      set MAX_LEVS                     =
+
+      # Global target coarse size. Empty retains the AMG4PSBLAS default.
+      set MIN_COARSE_SIZE              =
+
+      # Target coarse size per process. Empty retains the AMG4PSBLAS default.
+      set MIN_COARSE_SIZE_PER_PROCESS  =
+
+      # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+      set MIN_CR_RATIO                 =
+
+      # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+      # retains the AMG4PSBLAS default.
+      set ML_CYCLE                     =
+
+      # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+      # Additional options. Empty retains the AMG4PSBLAS default.
+      set MUMPS_LOC_GLOB               =
+
+      # Multilevel cycles per application; native one-level actions use
+      # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+      set OUTER_SWEEPS                 =
+
+      # Optional native typed entries, one per line; applied after Additional
+      # options. Relative paths are resolved against the main parameter file.
+      set Options file                 =
+
+      # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+      # retains the AMG4PSBLAS default.
+      set PAR_AGGR_ALG                 =
+
+      # Polynomial degree. Empty retains the AMG4PSBLAS default.
+      set POLY_DEGREE                  =
+
+      # Prescribed polynomial spectral radius; native admissible interval is
+      # (0,1]. Empty retains the AMG4PSBLAS default.
+      set POLY_RHO_BA                  =
+
+      # Native spectral radius estimation method. Empty retains the AMG4PSBLAS
+      # default.
+      set POLY_RHO_ESTIMATE            =
+
+      # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+      # default.
+      set POLY_RHO_ESTIMATE_ITERATIONS =
+
+      # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty retains
+      # the AMG4PSBLAS default.
+      set POLY_VARIANT                 =
+
+      # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_ITRACE              =
+
+      # Smoother residual check interval. Empty retains the AMG4PSBLAS
+      # default.
+      set SMOOTHER_RESIDUAL            =
+
+      # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+      # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_STOP                =
+
+      # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+      # default.
+      set SMOOTHER_STOPTOL             =
+
+      # Smoother sweeps, including residual-correction sweeps for one-level
+      # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_SWEEPS              =
+
+      # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_TRACE               =
+
+      # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+      set SMOOTHER_TYPE                =
+
+      # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+      set SOLVER_SWEEPS                =
+
+      # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+      # default.
+      set SUB_FILLIN                   =
+
+      # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+      set SUB_ILUTHRS                  =
+
+      # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS default.
+      set SUB_OVR                      =
+
+      # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+      # AMG4PSBLAS default.
+      set SUB_PROL                     =
+
+      # Native Schwarz restriction: NONE or HALO. Empty retains the AMG4PSBLAS
+      # default.
+      set SUB_RESTR                    =
+
+      # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+      # AINV. Empty retains the AMG4PSBLAS default.
+      set SUB_SOLVE                    =
+
+      # Print amg_c_ddescr after setup.
+      set Verbosity                    = false
+
+      # Native matrix format argument; empty preserves the native default.
+      set afmt                         =
+
+      # Native vector format argument; empty preserves the native default.
+      set chfmt                        =
+
+      # Original amg_c_dprecinit ptype: ML, AS, BJAC, JACOBI, L1-JACOBI, POLY,
+      # NONE, etc. No presets or aliases are substituted.
+      set ptype                        = ML
+
+
+      subsection COARSE
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+      subsection POST
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+      subsection PRE
+        # Native spectral estimate for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_EIG                     =
+
+        # FILTER or NOFILTER for prolongator construction. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_FILTER                  =
+
+        # Native algorithm for prolongator damping. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_OMEGA_ALG               =
+
+        # Prescribed prolongator damping value. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_OMEGA_VAL               =
+
+        # Aggregation ordering, such as NATURAL or DEGREE. Empty retains the
+        # AMG4PSBLAS default.
+        set AGGR_ORD                     =
+
+        # SMOOTHED or UNSMOOTHED prolongation. Empty retains the AMG4PSBLAS
+        # default.
+        set AGGR_PROL                    =
+
+        # Matching aggregate size. Empty retains the AMG4PSBLAS default.
+        set AGGR_SIZE                    =
+
+        # Strength-of-connection threshold. At the top level a list separated
+        # by commas, semicolons or spaces assigns levels 2,3,... as in the
+        # upstream example. Empty retains the AMG4PSBLAS default.
+        set AGGR_THRESH                  =
+
+        # Native aggregation criterion, such as SOC1, SOC2 or MATCHBOXP. Empty
+        # retains the AMG4PSBLAS default.
+        set AGGR_TYPE                    =
+
+        # AINV algorithm variant. Empty retains the AMG4PSBLAS default.
+        set AINV_ALG                     =
+
+        # Native coarse block-Jacobi trace frequency. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_ITRACE                  =
+
+        # Native coarse block-Jacobi residual check interval. Empty retains
+        # the AMG4PSBLAS default.
+        set BJAC_RESCHECK                =
+
+        # Native coarse block-Jacobi residual stopping selection. Empty
+        # retains the AMG4PSBLAS default.
+        set BJAC_STOP                    =
+
+        # Native coarse block-Jacobi stopping tolerance. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_STOPTOL                 =
+
+        # Native coarse block-Jacobi trace selection. Empty retains the
+        # AMG4PSBLAS default.
+        set BJAC_TRACE                   =
+
+        # Coarse incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_FILLIN                =
+
+        # Coarse ILUT dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_ILUTHRS               =
+
+        # Coarse inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set COARSE_INVFILL               =
+
+        # Coarse matrix layout: DIST or REPL. Empty retains the AMG4PSBLAS
+        # default.
+        set COARSE_MAT                   =
+
+        # Native coarse solver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SOLVE                 =
+
+        # Native coarse local subsolver. Empty retains the AMG4PSBLAS default.
+        set COARSE_SUBSOLVE              =
+
+        # Coarse smoother sweeps. Empty retains the AMG4PSBLAS default.
+        set COARSE_SWEEPS                =
+
+        # Native number of cycle sweeps at a level. Empty retains the
+        # AMG4PSBLAS default.
+        set CYCLE_SWEEPS                 =
+
+        # Inverse factor fill. Empty retains the AMG4PSBLAS default.
+        set INV_FILLIN                   =
+
+        # Inverse factor dropping threshold. Empty retains the AMG4PSBLAS
+        # default.
+        set INV_THRESH                   =
+
+        # Coarse Krylov stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_EPS                      =
+
+        # Coarse Krylov local fill. Empty retains the AMG4PSBLAS default.
+        set KRM_FILLIN                   =
+
+        # TRUE selects a global coarse Krylov solve. Empty retains the
+        # AMG4PSBLAS default.
+        set KRM_GLOBAL                   =
+
+        # Coarse Krylov restart dimension. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_IRST                     =
+
+        # Coarse Krylov stopping criterion. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_ISTOPC                   =
+
+        # Coarse Krylov iteration limit. Empty retains the AMG4PSBLAS default.
+        set KRM_ITMAX                    =
+
+        # Coarse Krylov trace frequency. Empty retains the AMG4PSBLAS default.
+        set KRM_ITRACE                   =
+
+        # Native coarse Krylov preconditioner. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_KPREC                    =
+
+        # Native coarse Krylov method. Empty retains the AMG4PSBLAS default.
+        set KRM_METHOD                   =
+
+        # Native coarse Krylov local solver. Empty retains the AMG4PSBLAS
+        # default.
+        set KRM_SUB_SOLVE                =
+
+        # Maximum hierarchy levels. Native ML uses at least two even when this
+        # is 1; AS, BJAC, etc. provide one-level actions. Empty retains the
+        # AMG4PSBLAS default.
+        set MAX_LEVS                     =
+
+        # Global target coarse size. Empty retains the AMG4PSBLAS default.
+        set MIN_COARSE_SIZE              =
+
+        # Target coarse size per process. Empty retains the AMG4PSBLAS
+        # default.
+        set MIN_COARSE_SIZE_PER_PROCESS  =
+
+        # Minimum aggregation ratio. Empty retains the AMG4PSBLAS default.
+        set MIN_CR_RATIO                 =
+
+        # Native multilevel cycle: VCYCLE, WCYCLE, KCYCLE, MULT or ADD. Empty
+        # retains the AMG4PSBLAS default.
+        set ML_CYCLE                     =
+
+        # MUMPS LOCAL_SOLVER or GLOBAL_SOLVER; indexed MUMPS entries use
+        # Additional options. Empty retains the AMG4PSBLAS default.
+        set MUMPS_LOC_GLOB               =
+
+        # Multilevel cycles per application; native one-level actions use
+        # SMOOTHER_SWEEPS instead. Empty retains the AMG4PSBLAS default.
+        set OUTER_SWEEPS                 =
+
+        # Parallel aggregation algorithm: DECOUPLED, SYMDEC or COUPLED. Empty
+        # retains the AMG4PSBLAS default.
+        set PAR_AGGR_ALG                 =
+
+        # Polynomial degree. Empty retains the AMG4PSBLAS default.
+        set POLY_DEGREE                  =
+
+        # Prescribed polynomial spectral radius; native admissible interval is
+        # (0,1]. Empty retains the AMG4PSBLAS default.
+        set POLY_RHO_BA                  =
+
+        # Native spectral radius estimation method. Empty retains the
+        # AMG4PSBLAS default.
+        set POLY_RHO_ESTIMATE            =
+
+        # Spectral estimation iteration count. Empty retains the AMG4PSBLAS
+        # default.
+        set POLY_RHO_ESTIMATE_ITERATIONS =
+
+        # Native polynomial variant, such as CHEB_4 or CHEB_4_OPT. Empty
+        # retains the AMG4PSBLAS default.
+        set POLY_VARIANT                 =
+
+        # Smoother trace frequency. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_ITRACE              =
+
+        # Smoother residual check interval. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_RESIDUAL            =
+
+        # Native residual stopping selection, TRUE or FALSE; FALSE keeps the
+        # requested sweep count fixed. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_STOP                =
+
+        # Smoother residual stopping tolerance. Empty retains the AMG4PSBLAS
+        # default.
+        set SMOOTHER_STOPTOL             =
+
+        # Smoother sweeps, including residual-correction sweeps for one-level
+        # JACOBI or L1-JACOBI. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_SWEEPS              =
+
+        # Smoother trace selection. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TRACE               =
+
+        # Native smoother algorithm. Empty retains the AMG4PSBLAS default.
+        set SMOOTHER_TYPE                =
+
+        # Inner solver sweeps. Empty retains the AMG4PSBLAS default.
+        set SOLVER_SWEEPS                =
+
+        # Local incomplete factorization fill. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_FILLIN                   =
+
+        # Local ILUT dropping threshold. Empty retains the AMG4PSBLAS default.
+        set SUB_ILUTHRS                  =
+
+        # Additive Schwarz overlap layers. Empty retains the AMG4PSBLAS
+        # default.
+        set SUB_OVR                      =
+
+        # Native Schwarz prolongation: NONE, SUM or AVG. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_PROL                     =
+
+        # Native Schwarz restriction: NONE or HALO. Empty retains the
+        # AMG4PSBLAS default.
+        set SUB_RESTR                    =
+
+        # Native local solver, including ILU, ILUT, MILU, MUMPS, INVK, INVT or
+        # AINV. Empty retains the AMG4PSBLAS default.
+        set SUB_SOLVE                    =
+      end
+
+    end
+
+    subsection PETSc
+      # Native PETSc options, e.g. -pc_asm_overlap 1 -sub_pc_type ilu. This
+      # private PC options database does not modify other blocks.
+      set Options =
+
+      # Native PETSc PC type, for example gamg, hypre, asm, bjacobi, jacobi,
+      # ilu, lu or none. Availability follows the PETSc build.
+      set pc_type = gamg
+    end
+
+    subsection Trilinos
+      # deal.II Trilinos preconditioner: AMG, Jacobi, SSOR, ILU, ILUT, IC or
+      # Identity.
+      set Preconditioner        = AMG
+
+      # ML aggregation threshold.
+      set aggregation_threshold = 0.0001
+
+      # ML coarse solver selection.
+      set coarse_type           = Amesos-KLU
+
+      # ML higher order finite-element flag.
+      set higher_order_elements = true
+
+      # Incomplete factorization diagonal absolute perturbation.
+      set ilu_atol              = 0
+
+      # ILU, ILUT or IC fill level.
+      set ilu_fill              = 0
+
+      # Incomplete factorization diagonal relative perturbation.
+      set ilu_rtol              = 1
+
+      # ILUT dropping threshold.
+      set ilut_drop             = 0.001
+
+      # ML cycles per application.
+      set n_cycles              = 1
+
+      # Print ML hierarchy details.
+      set output_details        = false
+
+      # Jacobi or SSOR damping.
+      set relaxation            = 1
+
+      # Ifpack or AMG overlap.
+      set smoother_overlap      = 0
+
+      # AMG or relaxation sweeps.
+      set smoother_sweeps       = 2
+
+      # ML smoother selection.
+      set smoother_type         = symmetric Gauss-Seidel
+
+      # Use ML W cycles.
+      set w_cycle               = false
+    end
+
+  end
+
+end
+
+
+subsection Output
+  # Relative paths are relative to the process working directory.
+  set Directory              = output
+
+  # Print deal.II solver progress on rank zero.
+  set Solver trace           = false
+
+  # Write the selected outer solver's residual estimates to CSV.
+  set Write residual history = true
+
+  # Write parallel VTU/PVTU files for velocity and pressure.
+  set Write visualization    = true
+end
+
+
+subsection Problem
+  # leaky: unit top-corner values; watertight: zero corner values;
+  # regularized: 1-x^4.
+  set Cavity lid               = regularized
+
+  # The step inlet is 4*peak*y*(1-y). The excerpt specifies its shape but not
+  # amplitude.
+  set Step inlet peak velocity = 1
+
+  # Examples 5.1.1--5.1.4 in the supplied Stokes excerpt, all with zero body
+  # force.
+  set Test case                = poiseuille
+
+  # Positive constant nu in -nu*Laplacian(u)+grad(p)=0.
+  set Viscosity                = 1
+end
+
+
+subsection Verification
+  # Negative disables this check. Taylor-Hood is weakly, not pointwise,
+  # divergence-free.
+  set Maximum divergence L2 norm = -1
+
+  # Negative disables this check; colliding pressure errors are modulo
+  # constants.
+  set Maximum pressure L2 error  = -1
+
+  # Negative disables this check; available for poiseuille and colliding.
+  set Maximum velocity L2 error  = -1
+end

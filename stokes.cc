@@ -24,6 +24,7 @@
 #include <deal.II/lac/solver_minres.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/data_out_dof_data.templates.h>
 #include <deal.II/numerics/vector_tools.h>
 
 #include <algorithm>
@@ -41,8 +42,6 @@
 namespace Stokes
 {
   using namespace dealii;
-  using Vector = StokesLA::Vector;
-  using BlockVector = StokesLA::BlockVector;
 
   struct BlockSettings
   {
@@ -269,13 +268,18 @@ namespace Stokes
     const Settings &p;
   };
 
+  template <StokesLA::Backend backend>
   class BlockInverse
   {
   public:
-    BlockInverse(const StokesLA::Matrix &matrix, const BlockSettings &settings,
+    using LA = StokesLA::BackendTraits<backend>;
+    using Vector = typename LA::Vector;
+    using Matrix = typename LA::Matrix;
+
+    BlockInverse(const Matrix &matrix, const BlockSettings &settings,
                  const std::string &label)
       : matrix(matrix), settings(settings), label(label),
-        preconditioner(matrix.make_preconditioner(settings.preconditioner))
+        preconditioner(LA::make_preconditioner(matrix, settings.preconditioner))
     {}
 
     void vmult(Vector &dst, const Vector &src) const
@@ -324,17 +328,22 @@ namespace Stokes
     mutable unsigned int largest_iteration_count = 0;
 
   private:
-    const StokesLA::Matrix &matrix;
+    const Matrix &matrix;
     const BlockSettings &settings;
     const std::string label;
-    std::unique_ptr<StokesLA::Preconditioner> preconditioner;
+    std::unique_ptr<StokesLA::Preconditioner<Vector>> preconditioner;
   };
 
+  template <StokesLA::Backend backend>
   class BlockPreconditioner
   {
   public:
-    BlockPreconditioner(const StokesLA::BlockMatrix &matrix,
-                        const BlockInverse &velocity, const BlockInverse &pressure,
+    using LA = StokesLA::BackendTraits<backend>;
+    using BlockVector = typename LA::BlockVector;
+    using BlockMatrix = typename LA::BlockMatrix;
+
+    BlockPreconditioner(const BlockMatrix &matrix,
+                        const BlockInverse<backend> &velocity, const BlockInverse<backend> &pressure,
                         const std::string &form, const BlockVector &layout)
       : matrix(matrix), velocity(velocity), pressure(pressure), form(form)
     {
@@ -369,23 +378,25 @@ namespace Stokes
     }
 
   private:
-    const StokesLA::BlockMatrix &matrix;
-    const BlockInverse &velocity, &pressure;
+    const BlockMatrix &matrix;
+    const BlockInverse<backend> &velocity, &pressure;
     const std::string form;
     mutable BlockVector work;
   };
 
+  template <StokesLA::Backend backend>
   class Problem
   {
   public:
+    using LA = StokesLA::BackendTraits<backend>;
+    using BlockVector = typename LA::BlockVector;
+
     explicit Problem(const Settings &settings)
       : p(settings), comm(MPI_COMM_WORLD),
         pcout(std::cout, Utilities::MPI::this_mpi_process(comm) == 0),
         triangulation(comm),
         fe(FE_Q<2>(p.pressure_degree+1), 2, FE_Q<2>(p.pressure_degree), 1),
-        dofs(triangulation),
-        system_matrix(StokesLA::parse_backend(p.backend)),
-        pressure_mass(StokesLA::parse_backend(p.backend))
+        dofs(triangulation)
     {}
 
     void run(const ParameterHandler &parameters);
@@ -409,9 +420,9 @@ namespace Stokes
     IndexSet owned, relevant;
     std::vector<IndexSet> owned_blocks, relevant_blocks;
     types::global_dof_index n_velocity = 0;
-    StokesLA::BlockMatrix system_matrix;
-    StokesLA::Matrix pressure_mass;
-    BlockVector solution, ghosted_solution, rhs, assembly_rhs;
+    typename LA::BlockMatrix system_matrix;
+    typename LA::Matrix pressure_mass;
+    BlockVector solution, ghosted_solution, rhs;
     const FEValuesExtractors::Vector velocity{0};
     const FEValuesExtractors::Scalar pressure{2};
     double residual_norm = 0., rhs_norm = 0., setup_seconds = 0., solve_seconds = 0.;
@@ -420,7 +431,8 @@ namespace Stokes
     std::ofstream summary;
   };
 
-  void Problem::rank_zero_io(const std::function<void()> &operation) const
+  template <StokesLA::Backend backend>
+  void Problem<backend>::rank_zero_io(const std::function<void()> &operation) const
   {
     std::string error;
     if (Utilities::MPI::this_mpi_process(comm) == 0)
@@ -430,7 +442,8 @@ namespace Stokes
     AssertThrow(error.empty(), ExcMessage(error));
   }
 
-  void Problem::make_grid()
+  template <StokesLA::Backend backend>
+  void Problem<backend>::make_grid()
   {
     if (p.problem == "backward_step")
       {
@@ -464,7 +477,8 @@ namespace Stokes
     triangulation.refine_global(p.initial_refinements);
   }
 
-  void Problem::setup()
+  template <StokesLA::Backend backend>
+  void Problem<backend>::setup()
   {
     dofs.distribute_dofs(fe);
     DoFRenumbering::component_wise(dofs, std::vector<unsigned int>{0, 0, 1});
@@ -501,16 +515,16 @@ namespace Stokes
     // remain exactly zero, apart from the single pressure constraint row.
     DoFTools::make_sparsity_pattern(dofs, graph, constraints, false);
     SparsityTools::distribute_sparsity_pattern(graph, owned, comm, relevant);
-    system_matrix.reinit(owned_blocks, graph, comm);
-    pressure_mass.reinit(owned_blocks[1], owned_blocks[1], graph.block(1, 1), comm);
+    LA::reinit_block_matrix(system_matrix, owned_blocks, graph, comm);
+    LA::reinit_matrix(pressure_mass, owned_blocks[1], owned_blocks[1], graph.block(1, 1), comm);
 
-    solution.reinit(owned_blocks, comm);
-    rhs.reinit(owned_blocks, comm);
-    assembly_rhs.reinit(owned_blocks, relevant_blocks, comm);
-    ghosted_solution.reinit(owned_blocks, relevant_blocks, comm);
+    LA::reinit_block_vector(solution, owned_blocks, comm);
+    LA::reinit_block_vector(rhs, owned_blocks, comm);
+    LA::reinit_ghosted_block_vector(ghosted_solution, owned_blocks, relevant_blocks, comm);
   }
 
-  void Problem::assemble()
+  template <StokesLA::Backend backend>
+  void Problem<backend>::assemble()
   {
     const QGauss<2> quadrature(p.pressure_degree+2);
     FEValues<2> values(fe, quadrature, update_values | update_gradients | update_JxW_values);
@@ -523,7 +537,9 @@ namespace Stokes
     std::vector<types::global_dof_index> indices(n), pressure_indices(pressure_local.size());
     std::vector<Tensor<2, 2>> gradients(n);
     std::vector<double> divergences(n), pressures(n);
-    assembly_rhs = 0.;
+    // Native backend vectors accept additions to nonlocal entries and exchange
+    // them in compress(). Ghosted vectors are reserved for reading FE fields.
+    rhs = 0.;
     for (const auto &cell : dofs.active_cell_iterators())
       if (cell->is_locally_owned())
         {
@@ -548,22 +564,22 @@ namespace Stokes
                   cell_mass(i, j) += pressures[pressure_local[i]]*pressures[pressure_local[j]]*values.JxW(q)/p.viscosity;
             }
           cell->get_dof_indices(indices);
-          constraints.distribute_local_to_global(cell_matrix, cell_rhs, indices, system_matrix, assembly_rhs);
+          constraints.distribute_local_to_global(cell_matrix, cell_rhs, indices, system_matrix, rhs);
           for (unsigned int i = 0; i < pressure_local.size(); ++i) pressure_indices[i] = indices[pressure_local[i]]-n_velocity;
           pressure_constraints.distribute_local_to_global(cell_mass, pressure_indices, pressure_mass);
         }
     system_matrix.compress(VectorOperation::add);
     pressure_mass.compress(VectorOperation::add);
-    assembly_rhs.compress(VectorOperation::add);
-    rhs = assembly_rhs;
+    rhs.compress(VectorOperation::add);
   }
 
-  void Problem::solve(const unsigned int cycle)
+  template <StokesLA::Backend backend>
+  void Problem<backend>::solve(const unsigned int cycle)
   {
     const double before_setup = MPI_Wtime();
-    BlockInverse inverse_velocity(system_matrix.block(0, 0), p.velocity, "Velocity");
-    BlockInverse inverse_pressure(pressure_mass, p.pressure, "Pressure");
-    BlockPreconditioner preconditioner(system_matrix, inverse_velocity, inverse_pressure,
+    BlockInverse<backend> inverse_velocity(system_matrix.block(0, 0), p.velocity, "Velocity");
+    BlockInverse<backend> inverse_pressure(pressure_mass, p.pressure, "Pressure");
+    BlockPreconditioner<backend> preconditioner(system_matrix, inverse_velocity, inverse_pressure,
                                      p.block_preconditioner, rhs);
     setup_seconds = Utilities::MPI::max(MPI_Wtime()-before_setup, comm);
     rhs_norm = rhs.l2_norm();
@@ -611,14 +627,12 @@ namespace Stokes
     // Check the constrained algebraic system before restoring prescribed values
     // and changing the arbitrary pressure constant for visualization/errors.
     constraints.distribute(solution);
-    ghosted_solution = solution;
-    ghosted_solution.update_ghost_values();
+    LA::import_ghosts(ghosted_solution, solution);
     if (p.closed_boundary())
       {
         const double mean = VectorTools::compute_mean_value(dofs, QGauss<2>(p.pressure_degree+2), ghosted_solution, 2);
-        for (const auto i : owned_blocks[1]) solution.block(1)[i] -= mean;
-        ghosted_solution = solution;
-        ghosted_solution.update_ghost_values();
+        solution.block(1).add(-mean);
+        LA::import_ghosts(ghosted_solution, solution);
       }
     pcout << "  " << p.outer_solver << " iterations: " << outer_iterations
           << "; true residual: " << residual_norm
@@ -636,7 +650,8 @@ namespace Stokes
       });
   }
 
-  void Problem::diagnostics(const unsigned int cycle)
+  template <StokesLA::Backend backend>
+  void Problem<backend>::diagnostics(const unsigned int cycle)
   {
     // At least six points per direction also resolve the quartic benchmark
     // and its squared error when the trial space has low polynomial degree.
@@ -727,7 +742,8 @@ namespace Stokes
                 ExcMessage("Divergence L2 verification threshold exceeded."));
   }
 
-  void Problem::output(const unsigned int cycle) const
+  template <StokesLA::Backend backend>
+  void Problem<backend>::output(const unsigned int cycle) const
   {
     if (!p.write_visualization) return;
     DataOut<2> data;
@@ -740,7 +756,8 @@ namespace Stokes
     data.write_vtu_with_pvtu_record(p.output_directory+"/", "stokes", cycle, comm, 3);
   }
 
-  void Problem::run(const ParameterHandler &parameters)
+  template <StokesLA::Backend backend>
+  void Problem<backend>::run(const ParameterHandler &parameters)
   {
     rank_zero_io([&]() {
       std::filesystem::create_directories(p.output_directory);
@@ -840,8 +857,28 @@ int main(int argc, char **argv)
       settings.pressure.preconditioner.psc.resolve_paths(parameter_directory);
       settings.validate();
       if (rank_zero && settings.solver_trace) deallog.depth_console(2);
-      Stokes::Problem problem(settings);
-      problem.run(prm);
+      // Dispatch once. Every matrix, Krylov vector, and preconditioner below
+      // this point has the selected backend's native type and storage.
+      switch (StokesLA::parse_backend(settings.backend))
+        {
+#ifdef STOKES_HAS_PSBLAS
+          case StokesLA::Backend::psctoolkit:
+            Stokes::Problem<StokesLA::Backend::psctoolkit>(settings).run(prm);
+            break;
+#endif
+#ifdef STOKES_HAS_PETSC
+          case StokesLA::Backend::petsc:
+            Stokes::Problem<StokesLA::Backend::petsc>(settings).run(prm);
+            break;
+#endif
+#ifdef STOKES_HAS_TRILINOS
+          case StokesLA::Backend::trilinos:
+            Stokes::Problem<StokesLA::Backend::trilinos>(settings).run(prm);
+            break;
+#endif
+          default:
+            AssertThrow(false, ExcMessage("The selected backend was not compiled."));
+        }
       return 0;
     }
   catch (const std::exception &exception)

@@ -1,0 +1,54 @@
+# Fixed positive block diagonal preconditioning for MINRES.
+subsection Problem
+  set Test case = poiseuille
+  set Viscosity = 1
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 1
+end
+subsection Linear algebra
+  set Block preconditioner = diagonal
+  subsection LinearSolver
+    set Method = MINRES
+    set Maximum iterations = 1000
+    set Relative tolerance = 1e-11
+    set Absolute tolerance = 1e-13
+  end
+  subsection Velocity block
+    set Action = apply
+    subsection AMG4PSBLAS
+      set ptype = JACOBI
+      set SMOOTHER_SWEEPS = 1
+    end
+    subsection PETSc
+      set pc_type = jacobi
+    end
+    subsection Trilinos
+      set Preconditioner = Jacobi
+      set smoother_sweeps = 1
+    end
+  end
+  subsection Pressure block
+    set Action = apply
+    subsection AMG4PSBLAS
+      set ptype = JACOBI
+      set SMOOTHER_SWEEPS = 1
+    end
+    subsection PETSc
+      set pc_type = jacobi
+    end
+    subsection Trilinos
+      set Preconditioner = Jacobi
+      set smoother_sweeps = 1
+    end
+  end
+end
+subsection Output
+  set Directory = output/poiseuille_minres
+end
+subsection Verification
+  set Maximum velocity L2 error = 1e-6
+  set Maximum pressure L2 error = 1e-6
+  set Maximum divergence L2 norm = 1e-6
+end

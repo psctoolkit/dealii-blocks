@@ -1,0 +1,56 @@
+# Native multilevel AMG with a relative options file and separate PRE/POST settings.
+subsection Problem
+  set Test case = poiseuille
+  set Viscosity = 1
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 2
+end
+subsection Linear algebra
+  set Backend = PSBLAS
+  set Block preconditioner = upper triangular
+  subsection LinearSolver
+    set Method = FGMRES
+    set Relative tolerance = 1e-11
+    set Absolute tolerance = 1e-13
+  end
+  subsection Velocity block
+    set Action = solve
+    set Solver = fgmres
+    set Relative tolerance = 1e-2
+    subsection AMG4PSBLAS
+      set ptype = ML
+      set MIN_COARSE_SIZE = 4
+      set SMOOTHER_TYPE = FBGS
+      set COARSE_SOLVE = BJAC
+      set COARSE_SUBSOLVE = ILU
+      set Additional options = hierarchy integer MAX_LEVS 6
+      set Options file = ../options/velocity-ml.options
+      set Verbosity = true
+      subsection PRE
+        set SMOOTHER_SWEEPS = 1
+      end
+      subsection POST
+        set SMOOTHER_SWEEPS = 1
+      end
+    end
+  end
+  subsection Pressure block
+    set Action = solve
+    set Solver = cg
+    set Relative tolerance = 1e-2
+    subsection AMG4PSBLAS
+      set ptype = JACOBI
+      set SMOOTHER_SWEEPS = 1
+    end
+  end
+end
+subsection Output
+  set Directory = output/poiseuille_amg_options
+end
+subsection Verification
+  set Maximum velocity L2 error = 1e-6
+  set Maximum pressure L2 error = 1e-6
+  set Maximum divergence L2 norm = 1e-6
+end
