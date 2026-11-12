@@ -1,0 +1,24 @@
+# Example 5.1.2: (-1,5)x(-1,1) minus the lower-left unit square.
+# The supplied excerpt leaves inlet amplitude unspecified; peak=1 is explicit.
+subsection Problem
+  set Test case = backward_step
+  set Viscosity = 1
+  set Step inlet peak velocity = 1
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 2
+  set Refinement cycles = 1
+end
+subsection Linear algebra
+  set Block preconditioner = lower triangular
+  subsection Velocity block
+    set Action = solve
+  end
+  subsection Pressure block
+    set Action = solve
+  end
+end
+subsection Output
+  set Directory = output/backward_step
+end

@@ -33,3 +33,28 @@ cd ..
 mkdir build
 sh ../configure-laptop/dealii-config.sh
 make -j8
+```
+
+## Stokes block-solver example
+
+The MPI example in [`stokes.cc`](./stokes.cc) solves the Poiseuille channel,
+backward-facing step, driven cavity (three lid conventions), and colliding-flow
+benchmarks with continuous Taylor--Hood elements. Select PETSc, Trilinos, or
+PSBLAS at runtime, and combine diagonal or triangular block preconditioners with
+independent direct applications or auxiliary Krylov solves for each block.
+
+Build against an existing deal.II installation or build tree:
+
+```bash
+cmake -S . -B build-stokes -DDEAL_II_DIR=/path/to/dealii-build -DCMAKE_BUILD_TYPE=Release
+cmake --build build-stokes -j8
+./build-stokes/stokes
+# Edit the generated parameters.prm, then:
+mpiexec -n 4 ./build-stokes/stokes parameters.prm
+ctest --test-dir build-stokes --output-on-failure
+```
+
+Running without arguments writes a documented `parameters.prm` and exits.
+An existing file is preserved. See [`README_STOKES.md`](./README_STOKES.md) for
+the equations, backend options, parameter examples and description of what is 
+implemented.

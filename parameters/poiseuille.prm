@@ -1,0 +1,29 @@
+# Example 5.1.1: (-1,1)^2, prescribed inlet/walls, natural right outlet.
+# Q2/Q1 represents this exact solution. Omitted entries keep documented defaults.
+subsection Problem
+  set Test case = poiseuille
+  set Viscosity = 1
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 2
+  set Refinement cycles = 1
+end
+subsection Linear algebra
+  # Uncomment to choose a compiled backend: PETSc, Trilinos, or PSBLAS.
+  # set Backend = PSBLAS
+  set Block preconditioner = upper triangular
+  subsection Velocity block
+    set Action = solve
+    set Solver = fgmres
+    set Relative tolerance = 1e-2
+  end
+  subsection Pressure block
+    set Action = solve
+    set Solver = cg
+    set Relative tolerance = 1e-2
+  end
+end
+subsection Output
+  set Directory = output/poiseuille
+end

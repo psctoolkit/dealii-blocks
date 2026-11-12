@@ -1,0 +1,15 @@
+# Example 5.1.3: the top corners belong to the moving lid (u_x=1).
+subsection Problem
+  set Test case = cavity
+  set Cavity lid = leaky
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 3
+end
+subsection Linear algebra
+  set Block preconditioner = upper triangular
+end
+subsection Output
+  set Directory = output/cavity_leaky
+end

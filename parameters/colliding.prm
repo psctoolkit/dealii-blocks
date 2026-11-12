@@ -1,0 +1,25 @@
+# Example 5.1.4: exact polynomial boundary data on the whole square.
+# Q4/Q3 contains the exact solution; set Pressure degree=1 for convergence studies.
+subsection Problem
+  set Test case = colliding
+  set Viscosity = 1
+end
+subsection Discretization
+  set Pressure degree = 3
+  set Initial global refinements = 1
+  set Refinement cycles = 1
+end
+subsection Linear algebra
+  set Block preconditioner = upper triangular
+  subsection Velocity block
+    set Action = solve
+    set Relative tolerance = 1e-3
+  end
+  subsection Pressure block
+    set Action = solve
+    set Relative tolerance = 1e-3
+  end
+end
+subsection Output
+  set Directory = output/colliding
+end

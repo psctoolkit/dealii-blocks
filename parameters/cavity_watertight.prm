@@ -1,0 +1,15 @@
+# Example 5.1.3: unit lid speed at interior lid nodes, zero at top corners.
+subsection Problem
+  set Test case = cavity
+  set Cavity lid = watertight
+end
+subsection Discretization
+  set Pressure degree = 1
+  set Initial global refinements = 3
+end
+subsection Linear algebra
+  set Block preconditioner = upper triangular
+end
+subsection Output
+  set Directory = output/cavity_watertight
+end
