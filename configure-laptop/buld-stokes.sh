@@ -1,9 +1,18 @@
-DEAL_II_DIR_LOCAL=$(cd build & pwd)
+#!/bin/sh
+set -eu
 
-echo "Selected DEAL_II_DIR is ${DEAL_II_DIR_LOCAL}"
+repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+dealii_build="$repo_dir/build"
+stokes_build="$repo_dir/build-stokes"
 
-cmake -S . -B build-stokes \
-  -DDEAL_II_DIR=${DEAL_II_DIR_LOCAL} \
+printf 'Selected DEAL_II_DIR is %s\n' "$dealii_build"
+
+cmake \
+  -S "$repo_dir" \
+  -B "$stokes_build" \
+  "-DDEAL_II_DIR:PATH=$dealii_build" \
   -DCMAKE_BUILD_TYPE=Release
 
-cmake --build build-stokes -j
+cmake --build "$stokes_build" \
+  --target stokes \
+  --parallel 8

@@ -30,9 +30,14 @@ sh ../configure-laptop/amg_config_dealii.sh
 make -j8
 
 cd ..
-mkdir build
-sh ../configure-laptop/dealii-config.sh
-make -j8
+mkdir -p build
+cd build
+
+sh ../configure-laptop/dealiiconfig.sh
+cmake --build . --parallel 8
+
+cd ..
+sh configure-laptop/buld-stokes.sh
 ```
 
 ## Stokes block-solver example
