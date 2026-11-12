@@ -38,6 +38,67 @@ add_executable(stokes stokes.cc)
 target_compile_features(stokes PRIVATE cxx_std_17)
 deal_ii_setup_target(stokes)
 
+# Complete the static-library dependencies of the pinned deal.II export.
+# The extended AMG C bindings contain both real and complex routines in one
+# object, so a real-valued application also needs their complex dependencies.
+if(DEAL_II_WITH_PSBLAS AND DEAL_II_WITH_AMG4PSBLAS)
+  if(NOT TARGET dealii::interface_psblas OR
+     NOT TARGET dealii::interface_amg4psblas)
+    message(FATAL_ERROR "The selected deal.II package does not export its PSBLAS/AMG4PSBLAS interface targets.")
+  endif()
+
+  get_target_property(_stokes_psblas_libraries
+    dealii::interface_psblas INTERFACE_LINK_LIBRARIES)
+  get_target_property(_stokes_amg_includes
+    dealii::interface_amg4psblas INTERFACE_INCLUDE_DIRECTORIES)
+  unset(_stokes_amg_config CACHE)
+  find_file(_stokes_amg_config amg_config.h
+    PATHS ${_stokes_amg_includes} NO_DEFAULT_PATH)
+  if(NOT _stokes_amg_config)
+    message(FATAL_ERROR "Cannot find amg_config.h in the AMG4PSBLAS include directories exported by deal.II.")
+  endif()
+  file(STRINGS "${_stokes_amg_config}" _stokes_amg_mumps
+    REGEX "^[ \t]*#[ \t]*define[ \t]+AMG_HAVE_MUMPS([ \t]|$)")
+  unset(_stokes_amg_config CACHE)
+
+  set(_stokes_amg_dependencies)
+  if(_stokes_amg_mumps)
+    if(NOT TARGET dealii::interface_mumps)
+      message(FATAL_ERROR "AMG4PSBLAS was built with MUMPS; enable DEAL_II_WITH_MUMPS in deal.II.")
+    endif()
+    get_target_property(_stokes_mumps_libraries
+      dealii::interface_mumps INTERFACE_LINK_LIBRARIES)
+    set(_stokes_mumps_library_dirs)
+    foreach(_library IN LISTS _stokes_mumps_libraries)
+      get_filename_component(_name "${_library}" NAME)
+      if(IS_ABSOLUTE "${_library}" AND _name MATCHES "^(lib)?dmumps([.-]|$)")
+        get_filename_component(_directory "${_library}" DIRECTORY)
+        list(APPEND _stokes_mumps_library_dirs "${_directory}")
+      endif()
+    endforeach()
+    # AMG4PSBLAS's native MUMPS interface uses all four scalar libraries.
+    # Resolve the additional ones beside dmumps to keep the installation and
+    # compiler/MPI ABI consistent with the library already chosen by deal.II.
+    foreach(_precision s c z)
+      unset(_stokes_mumps_precision_library CACHE)
+      find_library(_stokes_mumps_precision_library NAMES ${_precision}mumps
+        PATHS ${_stokes_mumps_library_dirs} NO_DEFAULT_PATH)
+      if(NOT _stokes_mumps_precision_library)
+        message(FATAL_ERROR "AMG4PSBLAS needs lib${_precision}mumps from the same MUMPS installation as dmumps. Check MUMPS_DIR in the deal.II configuration.")
+      endif()
+      list(APPEND _stokes_amg_dependencies "${_stokes_mumps_precision_library}")
+    endforeach()
+    unset(_stokes_mumps_precision_library CACHE)
+    list(APPEND _stokes_amg_dependencies ${_stokes_mumps_libraries})
+    set_property(TARGET dealii::interface_mumps APPEND
+      PROPERTY INTERFACE_LINK_LIBRARIES "${_stokes_psblas_libraries}")
+  endif()
+  # Static providers must follow their users on the final executable link line.
+  list(APPEND _stokes_amg_dependencies ${_stokes_psblas_libraries})
+  set_property(TARGET dealii::interface_amg4psblas APPEND
+    PROPERTY INTERFACE_LINK_LIBRARIES "${_stokes_amg_dependencies}")
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
   set(stokes_test_root "${CMAKE_CURRENT_BINARY_DIR}/tests")

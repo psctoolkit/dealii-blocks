@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// The backend adapter is derived from smoke-dealii; see LICENSE.stokes.
 // A deliberately small, MPI-distributed laboratory for Stokes block solvers.
 
 #include "stokes_backends.h"

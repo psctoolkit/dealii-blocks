@@ -54,6 +54,14 @@ Build against an existing deal.II installation or build tree:
 cmake -S . -B build-stokes -DDEAL_II_DIR=/path/to/dealii-build -DCMAKE_BUILD_TYPE=Release
 cmake --build build-stokes -j8
 ./build-stokes/stokes
+```
+
+or using the provided script
+```bash
+sh configure-laptop/build-stokes.sh
+```
+
+```bash
 # Edit the generated parameters.prm, then:
 mpiexec -n 4 ./build-stokes/stokes parameters.prm
 ctest --test-dir build-stokes --output-on-failure
