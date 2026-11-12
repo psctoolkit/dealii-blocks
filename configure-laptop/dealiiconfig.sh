@@ -80,4 +80,6 @@ cmake ../dealii \
   -DDEAL_II_WITH_AMG4PSBLAS:BOOL=ON \
   -DAMG4PSBLAS_DIR:STRING=${AMG4PSBLASDIR} \
   -DDEAL_II_WITH_MUMPS:BOOL=ON \
-  -DMUMPS_DIR=/opt/spack/opt/spack/linux-skylake/mumps-5.8.2-ykrl3js5mjqkofzsb6eexnkg6pfttgtr/
+  -DMUMPS_DIR=/opt/spack/opt/spack/linux-skylake/mumps-5.8.2-ykrl3js5mjqkofzsb6eexnkg6pfttgtr/ \
+  -DDEAL_II_WITH_MAGIC_ENUM:BOOL=ON \
+  -DDEAL_II_FORCE_BUNDLED_MAGIC_ENUM:BOOL=ON 
