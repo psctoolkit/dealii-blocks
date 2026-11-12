@@ -1,6 +1,3 @@
-[submodule "dealii"]
-	path = dealii
-	url = https://github.com/dealii/dealii.git
 [submodule "psblas3"]
 	path = psblas3
 	url = git@github.com:sfilippone/psblas3.git
