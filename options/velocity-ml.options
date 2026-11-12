@@ -1,0 +1,4 @@
+# This file is resolved relative to the main parameter file's directory.
+# File entries are applied after the named parameters and Additional options.
+smoother integer SMOOTHER_SWEEPS 2 position=PRE
+smoother integer SMOOTHER_SWEEPS 1 position=POST
