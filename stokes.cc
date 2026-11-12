@@ -21,6 +21,7 @@
 #include <deal.II/lac/full_matrix.h>
 #include <deal.II/lac/solver_cg.h>
 #include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_minres.h>
 #include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/numerics/data_out.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -86,6 +87,7 @@ namespace Stokes
     unsigned int initial_refinements = 2;
     unsigned int cycles = 1;
     std::string block_preconditioner = "upper triangular";
+    std::string outer_solver = "FGMRES";
     unsigned int max_iterations = 500;
     unsigned int restart = 50;
     double relative_tolerance = 1.e-9;
@@ -142,11 +144,22 @@ namespace Stokes
       prm.add_parameter("Block preconditioner", block_preconditioner,
                         "diagonal uses diag(A,Q); triangular forms use -Q with Q=M_p/nu.",
                         Patterns::Selection("diagonal|upper triangular|lower triangular"));
-      prm.enter_subsection("FGMRES");
-      prm.add_parameter("Maximum iterations", max_iterations, "Outer flexible GMRES iteration limit.", Patterns::Integer(1));
-      prm.add_parameter("Restart length", restart, "Outer flexible GMRES basis length.", Patterns::Integer(2));
-      prm.add_parameter("Relative tolerance", relative_tolerance, "Outer relative residual tolerance.", Patterns::Double(0., 1.));
-      prm.add_parameter("Absolute tolerance", absolute_tolerance, "Outer absolute residual tolerance.", Patterns::Double(0.));
+      prm.enter_subsection("LinearSolver");
+      prm.add_parameter("Method", outer_solver,
+                        "Outer method: MINRES, GMRES, or FGMRES. MINRES and GMRES require a fixed linear "
+                        "preconditioner; MINRES additionally requires a symmetric operator and a symmetric "
+                        "positive-definite preconditioner. FGMRES accommodates variable preconditioning. "
+                        "These compatibility requirements are documented, not checked.",
+                        Patterns::Selection("MINRES|GMRES|FGMRES"));
+      prm.add_parameter("Maximum iterations", max_iterations, "Outer solver iteration limit.", Patterns::Integer(1));
+      prm.add_parameter("Restart length", restart,
+                        "Outer GMRES/FGMRES basis length; ignored by MINRES.", Patterns::Integer(2));
+      prm.add_parameter("Relative tolerance", relative_tolerance,
+                        "Outer relative residual tolerance, measured against the initial residual in the solver's norm.",
+                        Patterns::Double(0., 1.));
+      prm.add_parameter("Absolute tolerance", absolute_tolerance,
+                        "Outer absolute residual tolerance. MINRES uses sqrt(r^T P^{-1} r); "
+                        "GMRES and FGMRES use the unpreconditioned residual norm.", Patterns::Double(0.));
       prm.leave_subsection();
       prm.enter_subsection("Velocity block");
       velocity.declare_parameters(prm);
@@ -159,7 +172,7 @@ namespace Stokes
       prm.enter_subsection("Output");
       prm.add_parameter("Directory", output_directory, "Relative paths are relative to the process working directory.");
       prm.add_parameter("Write visualization", write_visualization, "Write parallel VTU/PVTU files for velocity and pressure.");
-      prm.add_parameter("Write residual history", write_history, "Write the outer FGMRES residual estimates to CSV.");
+      prm.add_parameter("Write residual history", write_history, "Write the selected outer solver's residual estimates to CSV.");
       prm.add_parameter("Solver trace", solver_trace, "Print deal.II solver progress on rank zero.");
       prm.leave_subsection();
 
@@ -181,7 +194,7 @@ namespace Stokes
         AssertThrow(block->absolute_tolerance > 0. || block->relative_tolerance > 0.,
                     ExcMessage("Each auxiliary solver needs a positive stopping tolerance."));
       AssertThrow(absolute_tolerance > 0. || relative_tolerance > 0.,
-                  ExcMessage("FGMRES needs a positive stopping tolerance."));
+                  ExcMessage("The outer solver needs a positive stopping tolerance."));
       AssertThrow(!output_directory.empty(), ExcMessage("Output/Directory must not be empty."));
       AssertThrow(has_exact_solution() || (maximum_velocity_error < 0. && maximum_pressure_error < 0.),
                   ExcMessage("Exact-solution checks require poiseuille or colliding."));
@@ -555,12 +568,29 @@ namespace Stokes
     setup_seconds = Utilities::MPI::max(MPI_Wtime()-before_setup, comm);
     rhs_norm = rhs.l2_norm();
     const double tolerance = std::max(p.absolute_tolerance, p.relative_tolerance*rhs_norm);
-    SolverControl control(p.max_iterations, tolerance, p.solver_trace, p.solver_trace);
+    ReductionControl control(p.max_iterations, p.absolute_tolerance, p.relative_tolerance,
+                             p.solver_trace, p.solver_trace);
     control.enable_history_data();
-    SolverFGMRES<BlockVector> solver(control, typename SolverFGMRES<BlockVector>::AdditionalData(p.restart));
     solution = 0.;
     const double before_solve = MPI_Wtime();
-    solver.solve(system_matrix, solution, rhs, preconditioner);
+    if (p.outer_solver == "MINRES")
+      {
+        SolverMinRes<BlockVector> solver(control);
+        solver.solve(system_matrix, solution, rhs, preconditioner);
+      }
+    else if (p.outer_solver == "GMRES")
+      {
+        // Right preconditioning keeps the residual norm consistent with FGMRES.
+        SolverGMRES<BlockVector> solver(control,
+          typename SolverGMRES<BlockVector>::AdditionalData(p.restart, true));
+        solver.solve(system_matrix, solution, rhs, preconditioner);
+      }
+    else
+      {
+        SolverFGMRES<BlockVector> solver(control,
+          typename SolverFGMRES<BlockVector>::AdditionalData(p.restart));
+        solver.solve(system_matrix, solution, rhs, preconditioner);
+      }
     solve_seconds = Utilities::MPI::max(MPI_Wtime()-before_solve, comm);
     outer_iterations = control.last_step();
     velocity_iterations = inverse_velocity.iterations;
@@ -571,8 +601,13 @@ namespace Stokes
     system_matrix.vmult(residual, solution);
     residual.sadd(-1., 1., rhs);
     residual_norm = residual.l2_norm();
-    AssertThrow(std::isfinite(residual_norm) && residual_norm <= 10.*tolerance,
-                ExcMessage("The recomputed residual exceeds ten times the requested FGMRES tolerance."));
+    AssertThrow(std::isfinite(residual_norm), ExcMessage("The recomputed residual is not finite."));
+    // MINRES controls a preconditioned norm, so its stopping threshold cannot
+    // be compared directly with this Euclidean residual. Report both through
+    // the native solver history and the true-residual diagnostics.
+    if (p.outer_solver != "MINRES")
+      AssertThrow(residual_norm <= 10.*tolerance,
+                  ExcMessage("The recomputed residual exceeds ten times the requested outer solver tolerance."));
     // Check the constrained algebraic system before restoring prescribed values
     // and changing the arbitrary pressure constant for visualization/errors.
     constraints.distribute(solution);
@@ -585,7 +620,7 @@ namespace Stokes
         ghosted_solution = solution;
         ghosted_solution.update_ghost_values();
       }
-    pcout << "  FGMRES iterations: " << outer_iterations
+    pcout << "  " << p.outer_solver << " iterations: " << outer_iterations
           << "; true residual: " << residual_norm
           << "; inner iterations (u,p): " << velocity_iterations << ',' << pressure_iterations << '\n';
 
@@ -594,7 +629,7 @@ namespace Stokes
         const auto filename = p.output_directory + "/residuals-" + Utilities::int_to_string(cycle, 3) + ".csv";
         std::ofstream file(filename);
         file.exceptions(std::ios::failbit | std::ios::badbit);
-        file << "iteration,fgmres_residual_estimate\n" << std::setprecision(17);
+        file << "iteration,outer_residual_estimate\n" << std::setprecision(17);
         const auto &history = control.get_history_data();
         for (unsigned int i = 0; i < history.size(); ++i) file << i << ',' << history[i] << '\n';
         file.close();
@@ -675,7 +710,8 @@ namespace Stokes
       summary << cycle << ',' << p.backend << ',' << p.problem << ',' << p.lid << ','
               << Utilities::MPI::n_mpi_processes(comm) << ',' << triangulation.n_global_active_cells() << ','
               << dofs.n_dofs() << ',' << p.pressure_degree+1 << ',' << p.pressure_degree << ',' << p.viscosity << ','
-              << p.block_preconditioner << ',' << outer_iterations << ',' << velocity_iterations << ',' << pressure_iterations << ','
+              << p.block_preconditioner << ',' << p.outer_solver << ','
+              << outer_iterations << ',' << velocity_iterations << ',' << pressure_iterations << ','
               << residual_norm << ',' << (rhs_norm == 0. ? residual_norm : residual_norm/rhs_norm) << ',' << divergence << ',';
       if (p.has_exact_solution()) summary << u_error << ',' << u_h1_error << ',' << p_error;
       else summary << "nan,nan,nan";
@@ -715,11 +751,12 @@ namespace Stokes
       summary.exceptions(std::ios::failbit | std::ios::badbit);
       summary.open(p.output_directory+"/summary.csv");
       summary << std::setprecision(17)
-              << "cycle,backend,problem,cavity_lid,mpi_ranks,cells,dofs,velocity_degree,pressure_degree,viscosity,block_preconditioner,outer_iterations,velocity_inner_iterations,pressure_inner_iterations,true_residual,relative_true_residual,divergence_L2,velocity_L2_error,velocity_H1_seminorm_error,pressure_L2_error,mean_pressure,inlet_outward_flux,outlet_outward_flux,net_outward_flux,preconditioner_setup_seconds,solve_seconds\n";
+              << "cycle,backend,problem,cavity_lid,mpi_ranks,cells,dofs,velocity_degree,pressure_degree,viscosity,block_preconditioner,outer_solver,outer_iterations,velocity_inner_iterations,pressure_inner_iterations,true_residual,relative_true_residual,divergence_L2,velocity_L2_error,velocity_H1_seminorm_error,pressure_L2_error,mean_pressure,inlet_outward_flux,outlet_outward_flux,net_outward_flux,preconditioner_setup_seconds,solve_seconds\n";
     });
     pcout << std::setprecision(10) << "Backend: " << p.backend << "; available: " << StokesLA::available_backends()
           << "\nProblem: " << p.problem << "; Taylor-Hood Q" << p.pressure_degree+1 << "/Q" << p.pressure_degree
-          << "; block preconditioner: " << p.block_preconditioner << '\n';
+          << "; block preconditioner: " << p.block_preconditioner
+          << "; outer solver: " << p.outer_solver << '\n';
     make_grid();
     for (unsigned int cycle = 0; cycle < p.cycles; ++cycle)
       {

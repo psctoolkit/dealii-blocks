@@ -105,9 +105,9 @@ if(BUILD_TESTING)
   file(MAKE_DIRECTORY "${stokes_test_root}")
 
   # Each test has its own parameter file/output directory so ctest -j is safe.
-  # Jacobi needs no optional direct solver package; the outer flexible solve
-  # still exercises native PC application and genuinely nested Krylov solves.
-  function(stokes_numerical_test name backend problem degree refinements nu form u_action p_action ranks)
+  # Jacobi needs no optional direct solver package. The FGMRES cases exercise
+  # nested solves; GMRES/MINRES use fixed native preconditioner applications.
+  function(stokes_numerical_test name backend problem degree refinements nu form u_action p_action ranks outer_method)
     set(test_dir "${stokes_test_root}/${name}")
     file(MAKE_DIRECTORY "${test_dir}")
     set(prm "${test_dir}/setup.prm")
@@ -123,7 +123,8 @@ end
 subsection Linear algebra
   set Backend = ${backend}
   set Block preconditioner = ${form}
-  subsection FGMRES
+  subsection LinearSolver
+    set Method = ${outer_method}
     set Maximum iterations = 500
     set Restart length = 150
     set Relative tolerance = 1e-11
@@ -179,24 +180,34 @@ end
     endif()
     set_tests_properties(${name} PROPERTIES
       WORKING_DIRECTORY "${test_dir}" TIMEOUT 180 PROCESSORS ${ranks}
-      LABELS "stokes;${backend};exact-solution")
+      LABELS "stokes;${backend};${outer_method};exact-solution")
   endfunction()
 
   foreach(backend IN LISTS stokes_backends)
     string(TOLOWER "${backend}" key)
     # Poiseuille Q2/Q1 checks outlet traction and the absolute pressure level.
     stokes_numerical_test(${key}_poiseuille_upper ${backend} poiseuille 1 1 1
-      "upper triangular" solve solve 1)
+      "upper triangular" solve solve 1 FGMRES)
     stokes_numerical_test(${key}_poiseuille_diagonal ${backend} poiseuille 1 1 1
-      diagonal apply apply 1)
+      diagonal apply apply 1 FGMRES)
     stokes_numerical_test(${key}_poiseuille_lower ${backend} poiseuille 1 1 0.2
-      "lower triangular" apply solve 1)
+      "lower triangular" apply solve 1 FGMRES)
     # Q4/Q3 contains the colliding polynomial exactly; nu!=1 checks scaling.
     stokes_numerical_test(${key}_colliding ${backend} colliding 3 0 0.3
-      "upper triangular" solve apply 1)
+      "upper triangular" solve apply 1 FGMRES)
+    # Fixed upper-triangular application is suitable for ordinary GMRES.
+    stokes_numerical_test(${key}_poiseuille_gmres ${backend} poiseuille 1 1 1
+      "upper triangular" apply apply 1 GMRES)
+    # Positive diagonal Jacobi application gives MINRES an SPD preconditioner.
+    stokes_numerical_test(${key}_poiseuille_minres ${backend} poiseuille 1 1 1
+      diagonal apply apply 1 MINRES)
     if(DEAL_II_MPIEXEC)
       stokes_numerical_test(${key}_poiseuille_mpi2 ${backend} poiseuille 1 1 1
-        "upper triangular" solve solve 2)
+        "upper triangular" solve solve 2 FGMRES)
+      stokes_numerical_test(${key}_poiseuille_gmres_mpi2 ${backend} poiseuille 1 1 1
+        "upper triangular" apply apply 2 GMRES)
+      stokes_numerical_test(${key}_poiseuille_minres_mpi2 ${backend} poiseuille 1 1 1
+        diagonal apply apply 2 MINRES)
     endif()
   endforeach()
 
@@ -210,12 +221,18 @@ if(NOT status EQUAL 0 OR NOT EXISTS "${work}/parameters.prm")
   message(FATAL_ERROR "No-argument invocation did not generate parameters.prm")
 endif()
 file(READ "${work}/parameters.prm" contents)
-foreach(option "MAX_LEVS" "SUB_SOLVE" "pc_type" "Pressure degree" "Block preconditioner")
+foreach(option "MAX_LEVS" "SUB_SOLVE" "pc_type" "Pressure degree" "Block preconditioner" "subsection LinearSolver")
   string(FIND "${contents}" "${option}" found)
   if(found EQUAL -1)
     message(FATAL_ERROR "Generated defaults are missing ${option}")
   endif()
 endforeach()
+if(NOT contents MATCHES "set[ \t]+Method[ \t]*=[ \t]*FGMRES[ \t\r]*\n")
+  message(FATAL_ERROR "Generated defaults do not select Method = FGMRES")
+endif()
+if(contents MATCHES "subsection[ \t]+FGMRES[ \t\r]*\n")
+  message(FATAL_ERROR "Generated defaults still contain the old FGMRES subsection")
+endif()
 file(APPEND "${work}/parameters.prm" "\n# preservation sentinel\n")
 file(SHA256 "${work}/parameters.prm" before)
 execute_process(COMMAND "$<TARGET_FILE:stokes>" WORKING_DIRECTORY "${work}" RESULT_VARIABLE status)

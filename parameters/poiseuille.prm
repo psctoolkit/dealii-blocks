@@ -13,6 +13,10 @@ subsection Linear algebra
   # Uncomment to choose a compiled backend: PETSc, Trilinos, or PSBLAS.
   # set Backend = PSBLAS
   set Block preconditioner = upper triangular
+  subsection LinearSolver
+    # Outer method: MINRES, GMRES, or FGMRES (the default).
+    set Method = FGMRES
+  end
   subsection Velocity block
     set Action = solve
     set Solver = fgmres

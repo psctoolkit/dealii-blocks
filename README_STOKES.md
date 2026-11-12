@@ -252,12 +252,53 @@ Inner failure is reported as an error. Use CG only when the chosen block
 preconditioner is symmetric positive definite; an arbitrary ILU, Schwarz,
 or multigrid setup need not satisfy that condition.
 
-The outer method is always deal.II FGMRES. This accommodates block actions
-whose auxiliary iteration count changes between applications. Its own
-tolerances and basis length are under `Linear algebra/FGMRES`. The executable
-recomputes \(\lVert b-Kx\rVert_2\) and rejects a result exceeding ten times
-the requested outer target. This check occurs before restoring boundary
-values and changing the closed-domain pressure constant.
+Choose the outer deal.II Krylov method under `Linear algebra/LinearSolver`:
+
+```text
+subsection Linear algebra
+  subsection LinearSolver
+    set Method = FGMRES
+    set Maximum iterations = 500
+    set Restart length = 50
+    set Relative tolerance = 1e-9
+    set Absolute tolerance = 1e-12
+  end
+end
+```
+
+`Method` accepts the uppercase values `MINRES`, `GMRES`, and `FGMRES`; the
+default is `FGMRES`. Their mathematical requirements differ:
+
+| Method | Preconditioning assumptions |
+| --- | --- |
+| `MINRES` | Symmetric operator and a fixed, symmetric positive-definite preconditioning action |
+| `GMRES` | Fixed linear preconditioning action; symmetry is not required |
+| `FGMRES` | Allows variable preconditioning actions, including tolerance-controlled auxiliary solves |
+
+These assumptions guide experiment design; the program does not check or
+restrict solver/preconditioner combinations. `Maximum iterations` and the
+absolute/relative tolerances apply to all three methods. `Restart length`
+applies to GMRES and FGMRES and is ignored by MINRES. All three use
+`ReductionControl`, with stopping target
+
+\[
+\max(\text{absolute tolerance},\text{relative tolerance}\,\rho_0),
+\]
+
+where \(\rho_0\) is the initial residual measured in the selected solver's
+native norm. GMRES uses right preconditioning, and both GMRES and FGMRES
+measure the unpreconditioned Euclidean residual \(\rho_k=\lVert b-Kx_k\rVert_2\).
+MINRES uses the preconditioned norm
+\(\rho_k=\sqrt{r_k^T P^{-1}r_k}\), with \(r_k=b-Kx_k\).
+For every method, the executable separately recomputes and reports the final
+Euclidean residual \(\lVert b-Kx\rVert_2\), which supports comparisons across
+methods. This calculation occurs before restoring boundary values and
+changing the closed-domain pressure constant.
+
+For an existing parameter file, rename the outer `FGMRES` subsection to
+`LinearSolver` and add `set Method = FGMRES` to preserve its solver choice.
+The per-block `Solver = cg|gmres|fgmres` entries keep their names and lowercase
+values.
 
 ## Choosing a backend and its native options
 
@@ -353,8 +394,10 @@ set and `summary.csv`, with one row per refinement cycle. Use distinct output
 directories when comparing runs; a repeated directory replaces its CSV and
 parameter records. The summary records
 the problem, backend, MPI rank count, mesh and finite-element sizes, block
-form, outer and accumulated inner iteration counts, true algebraic residual,
+form, outer method, outer and accumulated inner iteration counts, true algebraic residual,
 divergence norm, pressure mean, boundary fluxes, and setup/solve times.
+The `outer_solver` column follows `block_preconditioner` and identifies the
+selected method.
 Times are maxima over MPI ranks. Preconditioner setup time excludes mesh
 generation and finite-element assembly.
 
@@ -366,7 +409,11 @@ the separate inlet/outlet columns are zero and the net boundary flux is
 still evaluated.
 
 `Output/Write residual history` controls the per-cycle CSV files containing
-outer FGMRES residual estimates. `Output/Write visualization` controls
+the selected outer solver's residual estimates in the `outer_residual_estimate`
+column. The estimates use the solver's native norm described above: Euclidean
+for GMRES/FGMRES and preconditioned for MINRES. They are distinct from the
+explicitly recomputed final Euclidean residual in `summary.csv`.
+`Output/Write visualization` controls
 parallel VTU/PVTU output of the velocity and pressure fields. Open the PVTU
 file in ParaView to view all MPI partitions together.
 
