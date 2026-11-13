@@ -8,8 +8,7 @@ enabled in the linked deal.II build.
 For PSBLAS, the matrices are `PSCToolkitWrappers::BlockSparseMatrix` and
 `SparseMatrix`, and every Krylov vector is a `PSCToolkitWrappers::BlockVector`
 or `Vector`. Finite element assembly and matrix/preconditioner applications
-operate on that native storage. The previous distributed-vector conversion
-layer and separate raw PSBLAS matrix implementation have been removed.
+operate on that native storage.
 
 ## Build against the modified deal.II library
 
