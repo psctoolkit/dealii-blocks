@@ -392,23 +392,23 @@ namespace StokesLA
 #endif
 
 #ifdef STOKES_HAS_PSBLAS
-    inline void psc_check(psb_i_t status, const std::string &operation)
+    inline void psc_check(psb_c_i_t status, const std::string &operation)
     { require(status == 0, operation + " failed with PSBLAS/AMG4PSBLAS error " + std::to_string(status)); }
 
     struct NativeOption
     {
       std::string phase, type, name, value, position;
-      psb_i_t first = 0, last = 0, index = 0;
+      psb_c_i_t first = 0, last = 0, index = 0;
       bool coarse = false;
     };
 
-    inline psb_i_t native_integer(const std::string &text)
+    inline psb_c_i_t native_integer(const std::string &text)
     {
       std::size_t used = 0;
       const auto value = std::stoll(text, &used);
-      require(used == text.size() && value >= std::numeric_limits<psb_i_t>::min() &&
-              value <= std::numeric_limits<psb_i_t>::max(), "Invalid native integer: " + text);
-      return static_cast<psb_i_t>(value);
+      require(used == text.size() && value >= std::numeric_limits<psb_c_i_t>::min() &&
+              value <= std::numeric_limits<psb_c_i_t>::max(), "Invalid native integer: " + text);
+      return static_cast<psb_c_i_t>(value);
     }
 
     inline double native_real(std::string text)
@@ -500,7 +500,7 @@ namespace StokesLA
                 require(!thresholds.empty(), "AGGR_THRESH needs at least one real value");
                 if (thresholds.size() > 1)
                   {
-                    psb_i_t level = 2;
+                    psb_c_i_t level = 2;
                     for (const auto &v : thresholds)
                       {
                         result.push_back({"hierarchy", "real", entry.name, v, "", level, level, 0, false});
@@ -542,12 +542,12 @@ namespace StokesLA
       return result;
     }
 
-    inline psb_i_t native_levels(amg_c_dprec *preconditioner)
+    inline psb_c_i_t native_levels(amg_c_dprec *preconditioner)
     {
       amg_c_prec_level_info info{};
-      psb_i_t level = 1;
+      psb_c_i_t level = 1;
       psc_check(amg_c_dprec_get_level_info(preconditioner, level, &info), "amg_c_dprec_get_level_info");
-      while (level < std::numeric_limits<psb_i_t>::max() &&
+      while (level < std::numeric_limits<psb_c_i_t>::max() &&
              amg_c_dprec_get_level_info(preconditioner, level + 1, &info) == 0) ++level;
       return level;
     }
@@ -561,7 +561,7 @@ namespace StokesLA
             require(!option.name.empty() && option.name.size() <= 80 &&
                     (option.type != "string" || option.value.size() <= 80),
                     "Native parameter names and string values have an 80-character limit");
-            psb_i_t first = option.first, last = option.last;
+            psb_c_i_t first = option.first, last = option.last;
             if (option.coarse) first = last = native_levels(pc);
             if (option.type == "string" && first > 0)
               {
@@ -594,7 +594,7 @@ namespace StokesLA
             const auto *end = last ? &last : nullptr;
             const auto *index = option.index ? &option.index : nullptr;
             const char *position = option.position.empty() ? nullptr : option.position.c_str();
-            psb_i_t status = 0;
+            psb_c_i_t status = 0;
             if (option.type == "integer")
               status = amg_c_dprecseti_opt(pc, option.name.c_str(), native_integer(option.value), begin, end, position, index);
             else if (option.type == "real")
