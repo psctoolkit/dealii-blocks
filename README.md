@@ -104,6 +104,4 @@ ctest --test-dir build-stokes --output-on-failure
 ```
 
 The test suite covers exact solutions, solver and block choices, MPI operation,
-the nonanalytic benchmarks, refinement, and native AMG settings. See
-[VALIDATION.md](VALIDATION.md) for the build and tests actually performed for
-this delivery.
+the nonanalytic benchmarks, refinement, and native AMG settings.
